@@ -1,0 +1,34 @@
+{
+  "name": "file-type-ext",
+  "version": "1.0.0",
+  "description": "An extension of `file-type` with additional supports for .doc, .xls, .ppt",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/leizhao175/file-type-ext.git"
+  },
+  "keywords": [
+    "file type",
+    "extention",
+    "ms office",
+    "doc",
+    "xls",
+    "ppt"
+  ],
+  "author": "Lei Zhao",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/leizhao175/file-type-ext/issues"
+  },
+  "homepage": "https://github.com/leizhao175/file-type-ext#readme",
+  "devDependencies": {
+    "eslint": "^6.0.1",
+    "read-chunk": "^3.2.0"
+  },
+  "dependencies": {
+    "file-type": "^12.0.0"
+  }
+}
