@@ -1,2 +1,2 @@
-# file-type-msoffice
-An extension to `file-type` lib with additional support to .doc, .xls, .ppt
+# file-type-ext
+An extension to `file-type` lib with additional supports for .doc, .xls, .ppt
