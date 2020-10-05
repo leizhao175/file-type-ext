@@ -1,8 +1,25 @@
-'use strict';
+import fileType, {FileType as FT, FileTypeResult as FTR, MimeType as MT} from 'file-type';
 
-const fileType = require('file-type')
+export type FileType = FT
+    | "msi"
+    | "doc"
+    | "xls"
+    | "ppt";
 
-const fileTypeExt = input => {
+export type MimeType = MT
+    | 'application/x-msi'
+    | 'application/msword'
+    | 'application/vnd.ms-excel'
+    | 'application/vnd.ms-powerpoint';
+
+export type FileTypeResult = {
+    ext: FTR["ext"] | FileType;
+    mime: FTR["mime"] | MimeType;
+    minimumRequiredBytes?: number;
+  };
+
+
+export const fileTypeExt = (input: Buffer | Uint8Array | ArrayBuffer): FileTypeResult | undefined => {
     if (!(input instanceof Uint8Array || input instanceof ArrayBuffer || Buffer.isBuffer(input))) {
         throw new TypeError(`Expected the \`input\` argument to be of type \`Uint8Array\` or \`Buffer\` or \`ArrayBuffer\`, got \`${typeof input}\``);
     }
@@ -13,12 +30,7 @@ const fileTypeExt = input => {
         return;
     }
 
-    const check = (header, options) => {
-        options = {
-            offset: 0,
-            ...options
-        };
-
+    const check = (header: number[], options: {offset: number, mask?: number[]}) => {
         for (let i = 0; i < header.length; i++) {
             // If a bitmask is set
             if (options.mask) {
@@ -35,12 +47,14 @@ const fileTypeExt = input => {
     };
 
     const type = fileType(buffer)
-    if(type && type.ext === 'msi'){
+    if(type == null || (type && type.ext === 'msi')){
         // Use CLSIDs to check old Microsoft Office file types: .doc, .xls, .ppt
         // Ref: http://fileformats.archiveteam.org/wiki/Microsoft_Compound_File
         const sectorSize = 1 << buffer[30];
         let index = (buffer[49] * 256) + buffer[48];
         index = ((index + 1) * sectorSize) + 80;
+
+        console.log("INDEX", index);
 
         // If the CLSID block is located outside the buffer, it will return an extra field `minimumRequiredBytes`.
         // Therefore, user can optionally retry it with a larger buffer.
@@ -80,24 +94,24 @@ const fileTypeExt = input => {
                 mime: 'application/vnd.ms-powerpoint'
             };
         }
-       return {
-            ext: 'msi',
-            mime: 'application/x-msi'
-        };
+        if (type && type.ext === "msi") {
+            return {
+                ext: 'msi',
+                mime: 'application/x-msi'
+            };
+        }
     }
 
     return type
 }
 
-module.exports = fileTypeExt
+export const minimumBytes = fileType.minimumBytes;
 
-Object.defineProperty(fileTypeExt, 'minimumBytes', {value: fileType.minimumBytes});
-
-fileTypeExt.stream = async readableStream => {
-    const readBytes = async (rs, num = 0) => {
-        return rs.read(num) || new Promise((resolve, reject) => {
-            let onEnd;
-            let onError;
+fileTypeExt.stream = (readableStream: NodeJS.ReadableStream) => {
+    const readBytes = (rs: NodeJS.ReadableStream, num = 0) => {
+        return rs.read(num) || new Promise<string | Buffer>((resolve, reject) => {
+            let onEnd: () => void;
+            let onError: (e: Error) => void;
             rs.once('end', onEnd = () => resolve(rs.read()));
             rs.once('error', onError = e => reject(e));
             rs.once('readable', async () => {
@@ -114,13 +128,13 @@ fileTypeExt.stream = async readableStream => {
     // A recursive function will first try to check the file type by using the first 'minimumBytes' chunk.
     // If the first 'minimumBytes' chunk is not enough to identify the file type, e.g. .doc, it will try it again with a larger chunk as specified by 'minimumRequiredBytes'.
     // It returns a promise which resolves a PassThrough stream plus a `fileType` field.
-    const streamFileType = async (inputStream, minimumBytes) => {
+    const streamFileType = async (inputStream: NodeJS.ReadableStream, minimumBytes: number): Promise<NodeJS.ReadableStream> => {
         const outputStream = new stream.PassThrough();
         const chunk = await readBytes(inputStream, minimumBytes);
-        const ft = fileTypeExt(chunk);
+        const ft = fileTypeExt(chunk as Buffer);
         outputStream.write(chunk);
         if (stream.pipeline) {
-            stream.pipeline(inputStream, outputStream, () => {});
+            stream.pipeline(inputStream, outputStream, () => ({}));
         } else {
             inputStream.pipe(outputStream);
         }
@@ -133,6 +147,6 @@ fileTypeExt.stream = async readableStream => {
         return outputStream;
     };
 
-    return streamFileType(readableStream, module.exports.minimumBytes);
+    return streamFileType(readableStream, minimumBytes);
 };
 
