@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
     "declaration": true,
     "downlevelIteration": true,
     "forceConsistentCasingInFileNames": true,
@@ -26,4 +27,3 @@
     "index.ts",
   ]
 }
-
