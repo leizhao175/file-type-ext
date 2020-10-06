@@ -54,8 +54,6 @@ export const fileTypeExt = (input: Buffer | Uint8Array | ArrayBuffer): FileTypeR
         let index = (buffer[49] * 256) + buffer[48];
         index = ((index + 1) * sectorSize) + 80;
 
-        console.log("INDEX", index);
-
         // If the CLSID block is located outside the buffer, it will return an extra field `minimumRequiredBytes`.
         // Therefore, user can optionally retry it with a larger buffer.
         if (index + 16 > buffer.length) {

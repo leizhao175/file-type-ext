@@ -24,5 +24,7 @@
         "SharedArrayBuffer": "readonly"
     },
     "rules": {
+        "no-console": "warn",
+        "no-debugger": "warn"
     }
 }
