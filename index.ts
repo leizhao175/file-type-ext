@@ -1,4 +1,4 @@
-import fileType, {FileType as FT, FileTypeResult as FTR, MimeType as MT} from 'file-type';
+import fileType, {FileExtension as FT, FileTypeResult as FTR, MimeType as MT} from "file-type/browser"
 
 export type FileType = FT
     | "msi"
@@ -19,7 +19,7 @@ export type FileTypeResult = {
   };
 
 
-export const fileTypeExt = (input: Buffer | Uint8Array | ArrayBuffer): FileTypeResult | undefined => {
+export const fileTypeExt = async (input: Buffer | Uint8Array | ArrayBuffer): Promise<FileTypeResult | undefined> => {
     if (!(input instanceof Uint8Array || input instanceof ArrayBuffer || Buffer.isBuffer(input))) {
         throw new TypeError(`Expected the \`input\` argument to be of type \`Uint8Array\` or \`Buffer\` or \`ArrayBuffer\`, got \`${typeof input}\``);
     }
@@ -46,8 +46,8 @@ export const fileTypeExt = (input: Buffer | Uint8Array | ArrayBuffer): FileTypeR
         return true;
     };
 
-    const type = fileType(buffer)
-    if(type == null || (type && type.ext === 'msi')){
+    const type = await fileType.fileTypeFromBuffer(buffer)
+    if(type == null) {
         // Use CLSIDs to check old Microsoft Office file types: .doc, .xls, .ppt
         // Ref: http://fileformats.archiveteam.org/wiki/Microsoft_Compound_File
         const sectorSize = 1 << buffer[30];
@@ -92,18 +92,20 @@ export const fileTypeExt = (input: Buffer | Uint8Array | ArrayBuffer): FileTypeR
                 mime: 'application/vnd.ms-powerpoint'
             };
         }
-        if (type && type.ext === "msi") {
-            return {
-                ext: 'msi',
-                mime: 'application/x-msi'
-            };
-        }
+        // if (type && type.ext === "msi") {
+        //     return {
+        //         ext: 'msi',
+        //         mime: 'application/x-msi'
+        //     };
+        // }
     }
 
     return type
 }
 
-export const minimumBytes = fileType.minimumBytes;
+// Value from https://github.com/sindresorhus/file-type/blob/e4a809e38ccf6b4fdfa457fecf816b4f9f0dbc40/core.js#L11
+// Used to be exposed, no longer is (https://github.com/sindresorhus/file-type/issues/381)
+export const minimumBytes = 4100;
 
 fileTypeExt.stream = (readableStream: NodeJS.ReadableStream) => {
     const readBytes = (rs: NodeJS.ReadableStream, num = 0) => {
@@ -129,7 +131,7 @@ fileTypeExt.stream = (readableStream: NodeJS.ReadableStream) => {
     const streamFileType = async (inputStream: NodeJS.ReadableStream, minimumBytes: number): Promise<NodeJS.ReadableStream> => {
         const outputStream = new stream.PassThrough();
         const chunk = await readBytes(inputStream, minimumBytes);
-        const ft = fileTypeExt(chunk as Buffer);
+        const ft = await fileTypeExt(chunk as Buffer);
         outputStream.write(chunk);
         if (stream.pipeline) {
             stream.pipeline(inputStream, outputStream, () => ({}));
